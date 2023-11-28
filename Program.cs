@@ -11,10 +11,35 @@ namespace Sockets_Server
     internal class Program
     {
         private static int port = 8005;
-        private static string IPAdress = "127.0.0.1";
+        private static string ipAddress = "127.0.0.1";
+
+        private static string ProcessRequest(string request)
+        {
+            string response = string.Empty;
+
+            switch (request.Trim().ToLower())
+            {
+                case "time":
+                    response = "Current time: " + DateTime.Now.ToString();
+                    break;
+                case "info":
+                    response = "Some information";
+                    break;
+                case "close":
+                    response = "Closing connection";
+                    break;
+                default:
+                    response = "Invalid command";
+                    break;
+            }
+
+            return response;
+        }
+
+
         static void Main(string[] args)
         {
-            IPEndPoint ipPoint = new IPEndPoint(IPAddress.Parse(IPAdress), port);
+            IPEndPoint ipPoint = new IPEndPoint(IPAddress.Parse(ipAddress), port);
             Socket listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             try
             {
@@ -24,25 +49,36 @@ namespace Sockets_Server
                 while (true)
                 {
                     Socket handler = listenSocket.Accept();
+                    Console.WriteLine("Client connected...");
 
-                    StringBuilder recievedString = new StringBuilder();
-                    int recievedBytes = 0;
-                    byte[] data = new byte[4096];
-
-                    do
+                    while (true)
                     {
-                        recievedBytes = handler.Receive(data);
-                        recievedString.Append(Encoding.Unicode.GetString(data,0,recievedBytes));
-                    } while (handler.Available > 0);
+                        StringBuilder receivedString = new StringBuilder();
+                        int recievedBytes = 0;
+                        byte[] data = new byte[256];
 
-                    Console.WriteLine(DateTime.Now.ToShortTimeString() + ": " + recievedString.ToString());
+                        do
+                        {
+                            recievedBytes = handler.Receive(data);
+                            receivedString.Append(Encoding.Unicode.GetString(data, 0, recievedBytes));
+                        } while (handler.Available > 0);
 
-                    string message = "Data recieved";
-                    handler.Send(Encoding.Unicode.GetBytes(message));   
+                        Console.WriteLine(DateTime.Now.ToShortTimeString() + ": " + receivedString.ToString());
+
+                        string response = ProcessRequest(receivedString.ToString());
+                        handler.Send(Encoding.Unicode.GetBytes(response));
+
+                        if (response == "Closing connection")
+                        {
+                            Console.WriteLine("Closing connection");
+                            break;
+                        }
+                    }
 
                     handler.Shutdown(SocketShutdown.Both);
                     handler.Close();
-                    Console.WriteLine("Server stop listen...");
+                    Console.WriteLine("Connection closed");
+
                 }
 
             }
