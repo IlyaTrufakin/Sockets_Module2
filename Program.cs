@@ -4,14 +4,59 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Sockets_Server
 {
+    // работает с несколькими клиентами
     internal class Program
     {
         private static int port = 8005;
         private static string ipAddress = "127.0.0.1";
+
+        private static void HandleClient(object obj)
+        {
+            Socket handler = (Socket)obj;
+
+            try
+            {
+                while (true)
+                {
+                    byte[] data = new byte[256];
+                    StringBuilder receivedString = new StringBuilder();
+                    int receivedBytes;
+
+                    do
+                    {
+                        receivedBytes = handler.Receive(data);
+                        receivedString.Append(Encoding.Unicode.GetString(data, 0, receivedBytes));
+                    } while (handler.Available > 0);
+
+                    Console.WriteLine(DateTime.Now.ToShortTimeString() + ": " + receivedString + $"  (from Client - {handler.RemoteEndPoint.ToString()})");
+
+                    string response = ProcessRequest(receivedString.ToString());
+                    handler.Send(Encoding.Unicode.GetBytes(response));
+
+                    if (response == "Closing")
+                    {
+                        Console.WriteLine($"Client - {handler.RemoteEndPoint.ToString()} Closing connection.");
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            finally
+            {
+
+                handler.Shutdown(SocketShutdown.Both);
+                handler.Close();
+                Console.WriteLine("Connection closed");
+            }
+        }
 
         private static string ProcessRequest(string request)
         {
@@ -20,13 +65,13 @@ namespace Sockets_Server
             switch (request.Trim().ToLower())
             {
                 case "time":
-                    response = "Current time: " + DateTime.Now.ToString();
+                    response = DateTime.Now.ToString();
                     break;
                 case "info":
-                    response = "Some information";
+                    response = Environment.OSVersion.ToString(); 
                     break;
-                case "close":
-                    response = "Closing connection";
+                case "bye":
+                    response = "Closing";
                     break;
                 default:
                     response = "Invalid command";
@@ -36,58 +81,31 @@ namespace Sockets_Server
             return response;
         }
 
-
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             IPEndPoint ipPoint = new IPEndPoint(IPAddress.Parse(ipAddress), port);
             Socket listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+
             try
             {
                 listenSocket.Bind(ipPoint);
-                listenSocket.Listen(5);
+                listenSocket.Listen(10);
                 Console.WriteLine("Server start listen...");
+
                 while (true)
                 {
                     Socket handler = listenSocket.Accept();
-                    Console.WriteLine("Client connected...");
+                    Console.WriteLine("Client connected: " + handler.RemoteEndPoint.ToString());
 
-                    while (true)
-                    {
-                        StringBuilder receivedString = new StringBuilder();
-                        int recievedBytes = 0;
-                        byte[] data = new byte[256];
-
-                        do
-                        {
-                            recievedBytes = handler.Receive(data);
-                            receivedString.Append(Encoding.Unicode.GetString(data, 0, recievedBytes));
-                        } while (handler.Available > 0);
-
-                        Console.WriteLine(DateTime.Now.ToShortTimeString() + ": " + receivedString.ToString());
-
-                        string response = ProcessRequest(receivedString.ToString());
-                        handler.Send(Encoding.Unicode.GetBytes(response));
-
-                        if (response == "Closing connection")
-                        {
-                            Console.WriteLine("Closing connection");
-                            break;
-                        }
-                    }
-
-                    handler.Shutdown(SocketShutdown.Both);
-                    handler.Close();
-                    Console.WriteLine("Connection closed");
-
+                    Thread clientThread = new Thread(new ParameterizedThreadStart(HandleClient));
+                    clientThread.Start(handler);
                 }
-
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
             }
-
-
         }
     }
 }
+
