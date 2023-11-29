@@ -19,7 +19,7 @@ namespace Sockets_Server_Lib
         private int clientIdCounter = 0;
         private object lockObject = new object(); // для блокировки доступа нескольких потоков к изменяемому объекту
 
-            //consoleThread = new Thread(ConsoleInput);
+        //consoleThread = new Thread(ConsoleInput);
 
 
         public Server(string ipAddress = "127.0.0.1", int port = 8005)
@@ -78,14 +78,14 @@ namespace Sockets_Server_Lib
         // Добавление клиента и его идентификатора в словарь connectedClients
         private void AddClient(Socket clientSocket)
         {
-              lock (lockObject)
+            lock (lockObject)
             {
                 clientIdCounter++;
                 connectedClients.Add(clientSocket, "Client ID#" + clientIdCounter.ToString());
             }
         }
 
- 
+
 
 
 
@@ -95,7 +95,7 @@ namespace Sockets_Server_Lib
 
             try
             {
-    
+
                 while (true)
                 {
                     byte[] data = new byte[256];
@@ -108,11 +108,12 @@ namespace Sockets_Server_Lib
                         receivedString.Append(Encoding.Unicode.GetString(data, 0, receivedBytes));
                     } while (handler.Available > 0);
 
-                   if (receivedString.ToString() != "timeQuiet") // когда клиент запрашивает время в автоматическом режиме, не выводим об этом инфо в консоль
+
+                    if (receivedString.ToString() != "timeQuiet") // когда клиент запрашивает время в автоматическом режиме, не выводим об этом инфо в консоль
                     {
-                     Console.WriteLine(DateTime.Now.ToShortTimeString() + ": " + receivedString + $"  (from {connectedClients[handler]})");
+                        Console.WriteLine(DateTime.Now.ToShortTimeString() + ": " + receivedString + $"  (from {connectedClients[handler]})");
                     }
- 
+
 
                     string response = ProcessRequest(receivedString.ToString()); // обработка строки запроса от клиента
                     handler.Send(Encoding.Unicode.GetBytes(response)); // отправка ответа клиенту
@@ -134,7 +135,7 @@ namespace Sockets_Server_Lib
                 handler.Shutdown(SocketShutdown.Both);
                 Console.WriteLine("Connection closed");
                 handler.Close();
- 
+
             }
         }
 
@@ -164,18 +165,36 @@ namespace Sockets_Server_Lib
 
             switch (request.Trim().ToLower())
             {
+                case "get":
+                    Console.Write("Получен запрос от Клиента на ручной ввод ответа, введите ответ: ");
+
+                    string strAnswer = Console.ReadLine();
+                    if (strAnswer.Length > 0)
+                    {
+                        response = strAnswer;
+                    }
+                    else
+                    {
+                        response = "Пустой ответ";
+                    }
+                    break;
+
                 case "time":
                     response = DateTime.Now.ToString();
                     break;
+
                 case "timequiet":
                     response = DateTime.Now.ToString();
                     break;
+
                 case "info":
                     response = Environment.OSVersion.ToString();
                     break;
+
                 case "bye":
                     response = "Closing";
                     break;
+
                 default:
                     response = "Invalid command";
                     break;
