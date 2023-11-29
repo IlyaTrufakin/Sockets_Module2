@@ -61,7 +61,7 @@ namespace Sockets_Server_Lib
                     Console.WriteLine($"Client connected:  {connectedClients[handler]} IP({handler.RemoteEndPoint.ToString()})");
                     foreach (var clients in connectedClients)
                     {
-                        Console.WriteLine($"Clients already connected:  {clients.Value} IP({clients.Key.RemoteEndPoint.ToString()})");
+                        Console.WriteLine($"\tClients already connected:  {clients.Value} IP({clients.Key.RemoteEndPoint.ToString()})");
                     }
 
 
@@ -110,7 +110,7 @@ namespace Sockets_Server_Lib
 
                    if (receivedString.ToString() != "timeQuiet") // когда клиент запрашивает время в автоматическом режиме, не выводим об этом инфо в консоль
                     {
-                     Console.WriteLine(DateTime.Now.ToShortTimeString() + ": " + receivedString + $"  (from Client - {handler.RemoteEndPoint.ToString()})");
+                     Console.WriteLine(DateTime.Now.ToShortTimeString() + ": " + receivedString + $"  (from {connectedClients[handler]})");
                     }
  
 
@@ -119,7 +119,7 @@ namespace Sockets_Server_Lib
 
                     if (response == "Closing") // отработка запроса клиента на закрытие соединения
                     {
-                        Console.WriteLine($"Client - {handler.RemoteEndPoint.ToString()} Closing connection.");
+                        Console.Write($"{connectedClients[handler]} - Closing connection...");
                         break;
                     }
                 }
@@ -130,10 +130,11 @@ namespace Sockets_Server_Lib
             }
             finally
             {
-
+                connectedClients.Remove(handler);
                 handler.Shutdown(SocketShutdown.Both);
-                handler.Close();
                 Console.WriteLine("Connection closed");
+                handler.Close();
+ 
             }
         }
 
