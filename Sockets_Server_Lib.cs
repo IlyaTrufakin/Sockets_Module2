@@ -61,7 +61,7 @@ namespace Sockets_Server_Lib
                     Console.WriteLine($"Client connected:  {connectedClients[handler]} IP({handler.RemoteEndPoint.ToString()})");
                     foreach (var clients in connectedClients)
                     {
-                        Console.WriteLine($"\tClients already connected:  {clients.Value} IP({clients.Key.RemoteEndPoint.ToString()})");
+                        Console.WriteLine($"\tList of connected clients:  {clients.Value} IP({clients.Key.RemoteEndPoint.ToString()})");
                     }
 
 
@@ -139,26 +139,7 @@ namespace Sockets_Server_Lib
             }
         }
 
-        private void ConsoleInput()
-        {
-            while (true)
-            {
-                string input = Console.ReadLine();
-                if (input.ToLower() == "exit")
-                {
-                    // Пользователь ввел "exit" для завершения сервера
-                    Environment.Exit(0);
-                }
-                else
-                {
-                    // Обработка пользовательского ввода и отправка ответа клиентам
-                    string response = ProcessRequest(input);
-                    Console.WriteLine("Server response: " + response);
-                    // Здесь вы можете рассылать ответ всем клиентам или реализовать логику по своему усмотрению
-                }
-            }
-        }
-
+   
         private static string ProcessRequest(string request)
         {
             string response = string.Empty;
